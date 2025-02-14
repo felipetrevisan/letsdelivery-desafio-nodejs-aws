@@ -1,0 +1,123 @@
+service: node-serverless-crud-ts
+
+plugins:
+  - serverless-offline
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    target: node22
+    platform: node
+    concurrency: 10
+  isOffline: ${opt:stage, 'dev'} == 'offline'
+
+  serverless-offline:
+    httpPort: 4000
+    lambdaPort: 4001
+    allowCache: true
+    noPrependStageInUrl: true
+
+  dynamodb:
+    stages:
+      - local
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+      convertEmptyValues: true
+    seed:
+      local:
+        sources:
+          - table: usersTable
+            sources: [seeds/clients.json]
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: sa-east-1
+  environment:
+    DYNAMODB_TABLE: clients
+    IS_OFFLINE: ${self:custom.isOffline, 'false'}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Scan
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: arn:aws:dynamodb:sa-east-1:*:table/clients
+
+functions:
+  client-create:
+    name: "client-create"
+    handler: src/handlers/clients/create.handler
+    description: create a client.
+    reservedConcurrency: 1
+    memorySize: 256
+    timeout: 10
+    events:
+      - http:
+          path: clients
+          method: post
+  client-get:
+    name: "client-get"
+    handler: src/handlers/clients/get.handler
+    description: get a client
+    reservedConcurrency: 1
+    memorySize: 256
+    timeout: 10
+    events:
+      - http:
+          path: clients/{id}
+          method: get
+  client-getAll:
+    name: "client-getAll"
+    handler: src/handlers/clients/get.handler
+    description: get all clients
+    reservedConcurrency: 1
+    memorySize: 256
+    timeout: 10
+    events:
+      - http:
+          path: clients
+          method: get
+  client-update:
+    name: "client-update"
+    handler: src/handlers/clients/update.handler
+    description: update a client
+    reservedConcurrency: 1
+    memorySize: 256
+    timeout: 10
+    events:
+      - http:
+          path: clients/{id}
+          method: put
+  client-delete:
+    name: "client-delete"
+    handler: src/handlers/clients/delete.handler
+    description: delete a client
+    reservedConcurrency: 1
+    memorySize: 256
+    timeout: 10
+    events:
+      - http:
+          path: clients/{id}
+          method: delete
+
+resources:
+  Resources:
+    ClientsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: clients
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
