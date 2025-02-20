@@ -6,7 +6,7 @@
     "strict": true,
     "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "types": ["node"],
     "esModuleInterop": true
   },
