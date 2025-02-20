@@ -1,6 +1,6 @@
 import AWS from "aws-sdk";
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient({
+export const dynamoDb = new AWS.DynamoDB.DocumentClient({
   region: "sa-east-1",
   ...(process.env.IS_OFFLINE && { endpoint: "http://localhost:8000" }),
 });
@@ -84,5 +84,15 @@ export class DynamoDBClient<T extends { id: string }> {
         Key: { id },
       })
       .promise();
+  }
+
+  async emptyDatabase(): Promise<void> {
+    const results = await this.getAll();
+
+    if (results.length) {
+      for (const item of results) {
+        await this.delete(item.id);
+      }
+    }
   }
 }
