@@ -1,23 +1,26 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { ZodIssue } from "zod";
 import { HttpResponse } from "../../core/http/response";
 import { ClientRequestUpdateBody } from "../../core/types/request";
 import { UpdateClientUseCase } from "../../core/usecases/update-client-usecase";
 import { ClientNotFoundError } from "../../core/exceptions/client-not-found";
+import { InvalidRequestBodyError } from "../../core/exceptions/invalid-request-body";
+import { ValidationRequestError } from "../../core/exceptions/validation-request";
+import { RequiredPathParamError } from "../../core/exceptions/path-param-required";
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const id = event.pathParameters?.id;
 
     if (!id) {
-      return HttpResponse(400, { success: false, message: "Client ID is required" });
+      throw new RequiredPathParamError("Client ID is required");
     }
 
     if (!event.body) {
-      return HttpResponse(400, { success: false, message: "Request body is required" });
+      throw new InvalidRequestBodyError();
     }
 
     let requestBody;
+
     try {
       requestBody = JSON.parse(event.body);
     } catch {
@@ -27,15 +30,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const { data, error } = ClientRequestUpdateBody.safeParse(requestBody);
 
     if (error) {
-      return HttpResponse(422, {
-        success: false,
-        message: "Validation failed",
-        errors: error.issues.map((issue: ZodIssue) => ({
-          field: issue.path.join("."),
-          message: issue.message,
-          code: issue.code,
-        })),
-      });
+      throw new ValidationRequestError(error);
     }
 
     const updateClient = new UpdateClientUseCase();
@@ -45,6 +40,22 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   } catch (error) {
     if (error instanceof ClientNotFoundError) {
       return HttpResponse(404, { success: false, message: error.message });
+    }
+
+    if (error instanceof RequiredPathParamError) {
+      return HttpResponse(400, { success: false, message: error.message });
+    }
+
+    if (error instanceof InvalidRequestBodyError) {
+      return HttpResponse(400, { success: false, message: error.message });
+    }
+
+    if (error instanceof ValidationRequestError) {
+      return HttpResponse(422, {
+        success: false,
+        message: error.message,
+        errors: error.getErrors(),
+      });
     }
 
     return HttpResponse(500, { success: false, message: "Internal server error" });
