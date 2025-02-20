@@ -5,7 +5,7 @@ import { Client } from "../types/client";
 export class GetClientUseCase {
   private db = new DynamoDBClient<Client>();
 
-  async execute(id?: string): Promise<Client | Client[] | null> {
+  async execute(id?: string): Promise<Client | null> {
     if (id) {
       const result = await this.db.get(id);
 
@@ -16,6 +16,6 @@ export class GetClientUseCase {
       return result;
     }
 
-    return await this.db.getAll();
+    return null;
   }
 }
