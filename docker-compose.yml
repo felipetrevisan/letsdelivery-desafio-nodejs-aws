@@ -1,0 +1,24 @@
+version: '3.8'
+services:
+  dynamodb-local:
+    command: "-jar DynamoDBLocal.jar -inMemory"
+    image: "amazon/dynamodb-local:latest"
+    user: root
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/dynamodb:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
+  dynamodb-local-setup:
+    depends_on: 
+      - dynamodb-local
+    image: amazon/aws-cli
+    volumes:
+      - "./schemas:/tmp/dynamo"
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    entrypoint:
+      - bash
