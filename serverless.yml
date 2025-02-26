@@ -1,120 +1,103 @@
-service: node-serverless-desafio-ts
+service: clients-api
+
+frameworkVersion: '3'
 
 plugins:
   - serverless-offline
+  - serverless-dynamodb-local
 
 custom:
-  esbuild:
-    bundle: true
-    minify: false
-    sourcemap: true
-    target: node22
-    platform: node
-    concurrency: 10
-
-  isOffline: ${opt:stage, 'dev'} == 'offline'
-
-  serverless-offline:
-    httpPort: 4000
-    lambdaPort: 4001
-    allowCache: true
-    noPrependStageInUrl: true
-    printOutput: true
-
+  tableName: ${self:service}-${opt:stage, self:provider.stage}
   dynamodb:
-    stages:
-      - local
     start:
       port: 8000
       inMemory: true
       migrate: true
-      seed: false
-      convertEmptyValues: true
+    stages:
+      - dev
 
 provider:
   name: aws
   runtime: nodejs22.x
-  region: sa-east-1
-  memorySize: 512
-  timeout: 15
-  tracing:
-    lambda: true 
-  logRetentionInDays: 7
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'sa-east-1'}
   environment:
-    DYNAMODB_TABLE: clients
-    IS_OFFLINE: ${self:custom.isOffline, 'false'}
-
+    CLIENTS_TABLE: ${self:custom.tableName}
+    LOG_LEVEL: ${opt:logLevel, 'info'}
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - dynamodb:PutItem
-        - dynamodb:GetItem
+        - dynamodb:Query
         - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: !GetAtt ClientsTable.Arn
 
 functions:
-  client-create:
+  createClient:
     handler: src/handlers/clients/create.handler
-    description: Create a new client
-    memorySize: 512
-    timeout: 10
     events:
       - http:
-          path: clients
+          path: /clients
           method: post
-
-  client-get:
+          cors: true
+  
+  getClient:
     handler: src/handlers/clients/get.handler
-    description: Get a single client by ID
-    memorySize: 512
-    timeout: 10
     events:
       - http:
-          path: clients/{id}
+          path: /clients/{id}
           method: get
-
-  client-getAll:
+          cors: true
+  
+  getAllClients:
     handler: src/handlers/clients/getAll.handler
-    description: Get all clients
-    memorySize: 512
-    timeout: 10
     events:
       - http:
-          path: clients
+          path: /clients
           method: get
-
-  client-update:
+          cors: true
+  
+  updateClient:
     handler: src/handlers/clients/update.handler
-    description: Update a client
-    memorySize: 512
-    timeout: 10
     events:
       - http:
-          path: clients/{id}
+          path: /clients/{id}
           method: put
-
-  client-delete:
+          cors: true
+  
+  deleteClient:
     handler: src/handlers/clients/delete.handler
-    description: Delete a client
-    memorySize: 512
-    timeout: 10
     events:
       - http:
-          path: clients/{id}
+          path: /clients/{id}
           method: delete
+          cors: true
 
 resources:
   Resources:
     ClientsTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: clients
+        TableName: ${self:custom.tableName}
+        BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
         KeySchema:
           - AttributeName: id
             KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
+        
+    # Add API Gateway specific resources if needed
+    ApiGatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
