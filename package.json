@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsx --no-warnings --env-file=.env.test --test ./tests/*.spec.ts",
-    "test:watch": "tsx --no-warnings --env-file=.env.test --test --watch ./tests/*.spec.ts",
-    "test:cov": "c8 tsx --env-file=.env.test --test ./tests/*.spec.ts",
-    "start:offline": "pnpm --no-warnings serverless offline"
+    "test": "NODE_ENV=test c8 tsx --no-warnings --env-file=.env.test --test ./tests/*.spec.ts",
+    "test:dev": "NODE_ENV=test tsx --no-warnings --env-file=.env.test --watch --test ./tests/*.spec.ts",
+    "test:debug": "NODE_ENV=test tsx --no-warnings --env-file=.env.test --inspect --test --watch ./tests/*.spec.ts",
+    "start:offline": "npx --no-warnings serverless offline"
   },
   "keywords": [],
   "author": "",
