@@ -1,0 +1,241 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: LetDeliveryAPI
+
+  ApiGatewayResourceClients:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "clients"
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayResourceClientById:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ApiGatewayResourceClients
+      PathPart: "{id}"
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodPostClient:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref ApiGatewayResourceClients
+      RestApiId: !Ref ApiGateway
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCreateClientFunction.Arn}/invocations"
+
+  ApiGatewayMethodGetClient:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref ApiGatewayResourceClientById
+      RestApiId: !Ref ApiGateway
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaGetClientFunction.Arn}/invocations"
+
+  ApiGatewayMethodGetAllClient:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      RestApiId: !Ref ApiGateway
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaGetAllClientFunction.Arn}/invocations"
+
+  ApiGatewayMethodUpdateClient:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: PUT
+      ResourceId: !Ref ApiGatewayResourceClientById
+      RestApiId: !Ref ApiGateway
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaUpdateClientFunction.Arn}/invocations"
+
+  ApiGatewayMethodDeleteClient:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: DELETE
+      ResourceId: !Ref ApiGatewayResourceClientById
+      RestApiId: !Ref ApiGateway
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaDeleteClientFunction.Arn}/invocations"
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["lambda.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: LambdaDynamoDBAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:PutItem"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Scan"
+                Resource: !GetAtt ClientsTable.Arn
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "iam:PassRole"
+                Resource: "*"
+
+  LambdaCreateClientFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CreateClientHandler
+      Runtime: nodejs22.x
+      Handler: dist/handlers/clients/create.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: letsdelivery_desafio
+        S3Key: letsdelivery_desafio.zip
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: clients
+
+  LambdaGetClientFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetClientHandler
+      Runtime: nodejs22.x
+      Handler: dist/handlers/clients/get.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: letsdelivery_desafio
+        S3Key: letsdelivery_desafio.zip
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: clients
+  
+   LambdaGetAllClientFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetAllClientHandler
+      Runtime: nodejs22.x
+      Handler: dist/handlers/clients/getAll.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: letsdelivery_desafio
+        S3Key: letsdelivery_desafio.zip
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: clients
+
+  LambdaUpdateClientFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UpdateClientHandler
+      Runtime: nodejs22.x
+      Handler: dist/handlers/clients/update.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: letsdelivery_desafio
+        S3Key: letsdelivery_desafio.zip
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: clients
+
+  LambdaDeleteClientFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DeleteClientHandler
+      Runtime: nodejs22.x
+      Handler: dist/handlers/clients/delete.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: letsdelivery_desafio
+        S3Key: letsdelivery_desafio.zip
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: clients
+
+  ClientsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: clients
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: prod
+    DependsOn:
+      - ApiGatewayMethodPostClient
+      - ApiGatewayMethodGetClient
+      - ApiGatewayMethodGetAllClient
+      - ApiGatewayMethodUpdateClient
+      - ApiGatewayMethodDeleteClient
+
+  LambdaPermissionCreateClient:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaCreateClientFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaPermissionGetClient:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaGetClientFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaPermissionUpdateClient:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaUpdateClientFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaPermissionDeleteClient:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaDeleteClientFunction
+      Principal: apigateway.amazonaws.com
