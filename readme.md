@@ -121,6 +121,6 @@ curl http://localhost:4000/clients/<client_id>
 ```
 
 ## Acknowledgments
-[Serverless Framework](https://www.serverless.com/) – For simplifying the deployment and management of cloud applications.
-[Amazon DynamoDB](https://aws.amazon.com/pt/pm/dynamodb) – A scalable NoSQL database used for efficient data storage and retrieval.
-[Node.js Test Runner](https://nodejs.org/) – The built-in test framework in Node.js, enabling seamless testing and automation.
+- [Serverless Framework](https://www.serverless.com/) – For simplifying the deployment and management of cloud applications.
+- [Amazon DynamoDB](https://aws.amazon.com/pt/pm/dynamodb) – A scalable NoSQL database used for efficient data storage and retrieval.
+- [Node.js Test Runner](https://nodejs.org/) – The built-in test framework in Node.js, enabling seamless testing and automation.
